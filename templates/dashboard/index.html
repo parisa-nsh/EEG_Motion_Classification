@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - EEG Classification{% endblock %}
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{% url 'dashboard:quick_training' %}" class="btn btn-primary">
+        <i class="fas fa-rocket me-2"></i>Quick Training
+    </a>
+    <a href="{% url 'dashboard:auto_tuning_create' %}" class="btn btn-outline-primary">
+        <i class="fas fa-magic me-2"></i>Auto-Tune
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card">
+            <div class="metric-value">{{ total_sessions }}</div>
+            <div class="metric-label">Total Training Sessions</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card">
+            <div class="metric-value">{{ completed_sessions }}</div>
+            <div class="metric-label">Completed Sessions</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card">
+            <div class="metric-value">{{ total_tuning }}</div>
+            <div class="metric-label">Auto-Tuning Sessions</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="metric-card">
+            <div class="metric-value">{{ completed_tuning }}</div>
+            <div class="metric-label">Completed Tuning</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:quick_training' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-rocket fa-2x mb-2"></i><br>
+                            Quick Training
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:training_create' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-cogs fa-2x mb-2"></i><br>
+                            Advanced Training
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:auto_tuning_create' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-magic fa-2x mb-2"></i><br>
+                            Auto-Tuning
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard:data_upload' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-upload fa-2x mb-2"></i><br>
+                            Upload Data
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities -->
+<div class="row">
+    <!-- Recent Training Sessions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i>Recent Training Sessions
+                </h5>
+                <a href="{% url 'dashboard:training_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_sessions %}
+                    <div class="list-group list-group-flush">
+                        {% for session in recent_sessions %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                            <div>
+                                <h6 class="mb-1">{{ session.name }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ session.created_at|date:"M d, Y H:i" }}
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="status-badge status-{{ session.status }} me-2">
+                                    {{ session.status|title }}
+                                </span>
+                                <a href="{% url 'dashboard:training_detail' session.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No training sessions yet.</p>
+                        <a href="{% url 'dashboard:quick_training' %}" class="btn btn-primary">Start Training</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Auto-Tuning Sessions -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-magic me-2"></i>Recent Auto-Tuning Sessions
+                </h5>
+                <a href="{% url 'dashboard:auto_tuning_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_tuning %}
+                    <div class="list-group list-group-flush">
+                        {% for session in recent_tuning %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                            <div>
+                                <h6 class="mb-1">{{ session.name }}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>{{ session.created_at|date:"M d, Y H:i" }}
+                                    {% if session.best_score %}
+                                        <br><i class="fas fa-star me-1"></i>Best: {{ session.best_score|floatformat:3 }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <span class="status-badge status-{{ session.status }} me-2">
+                                    {{ session.status|title }}
+                                </span>
+                                <a href="{% url 'dashboard:auto_tuning_detail' session.id %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-wand-magic-sparkles fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No auto-tuning sessions yet.</p>
+                        <a href="{% url 'dashboard:auto_tuning_create' %}" class="btn btn-primary">Start Auto-Tuning</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>EEG Classification Labels</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-circle text-primary me-2"></i>Motor imagery onset</li>
+                            <li><i class="fas fa-circle text-success me-2"></i>Other thoughts (non-motor)</li>
+                            <li><i class="fas fa-circle text-warning me-2"></i>Left hand movement</li>
+                            <li><i class="fas fa-circle text-info me-2"></i>Right hand movement</li>
+                            <li><i class="fas fa-circle text-secondary me-2"></i>Left hand resting</li>
+                            <li><i class="fas fa-circle text-dark me-2"></i>Right hand resting</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Default CNN Parameters</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Epochs:</strong> 50</li>
+                            <li><strong>Batch Size:</strong> 32</li>
+                            <li><strong>Learning Rate:</strong> 0.001</li>
+                            <li><strong>Filters:</strong> [32, 64, 128]</li>
+                            <li><strong>Kernel Size:</strong> 3</li>
+                            <li><strong>Dropout Rate:</strong> 0.5</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh dashboard every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+
+// Add some interactive features
+$(document).ready(function() {
+    // Add hover effects to metric cards
+    $('.metric-card').hover(
+        function() {
+            $(this).css('transform', 'scale(1.05)');
+        },
+        function() {
+            $(this).css('transform', 'scale(1)');
+        }
+    );
+    
+    // Add click effects to quick action buttons
+    $('.btn-outline-primary').click(function() {
+        $(this).addClass('btn-primary').removeClass('btn-outline-primary');
+        setTimeout(() => {
+            $(this).addClass('btn-outline-primary').removeClass('btn-primary');
+        }, 200);
+    });
+});
+</script>
+{% endblock %} 

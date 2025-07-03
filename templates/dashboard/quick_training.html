@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Quick Training - EEG Classification{% endblock %}
+{% block page_title %}Quick Training{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'dashboard:training_create' %}" class="btn btn-outline-primary">
+    <i class="fas fa-cogs me-2"></i>Advanced Training
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-rocket me-2"></i>Quick Training Setup
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Quick Training</strong> uses optimized default parameters for fast and reliable results.
+                    Perfect for getting started quickly!
+                </div>
+                
+                <form method="post" id="quick-training-form">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.epochs|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.batch_size|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.learning_rate|as_crispy_field }}
+                    </div>
+                    
+                    <!-- Preset Configurations -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-preset me-2"></i>Quick Presets</h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <button type="button" class="btn btn-outline-primary w-100" onclick="loadPreset('balanced')">
+                                    <i class="fas fa-balance-scale me-2"></i>Balanced
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button type="button" class="btn btn-outline-success w-100" onclick="loadPreset('accurate')">
+                                    <i class="fas fa-chart-line me-2"></i>High Accuracy
+                                </button>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <button type="button" class="btn btn-outline-warning w-100" onclick="loadPreset('fast')">
+                                    <i class="fas fa-bolt me-2"></i>Fast Training
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                            <i class="fas fa-undo me-2"></i>Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            <i class="fas fa-play me-2"></i>Start Quick Training
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Training Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>What Happens Next?
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-database fa-2x text-primary"></i>
+                        </div>
+                        <h6>1. Data Preparation</h6>
+                        <small class="text-muted">EEG signals are filtered and segmented</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-brain fa-2x text-success"></i>
+                        </div>
+                        <h6>2. Model Training</h6>
+                        <small class="text-muted">CNN learns to classify 6 brain states</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-chart-bar fa-2x text-warning"></i>
+                        </div>
+                        <h6>3. Results Analysis</h6>
+                        <small class="text-muted">View accuracy, loss, and confusion matrix</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expected Results -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Expected Results
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Training Time</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-clock text-primary me-2"></i>Balanced: ~5-10 minutes</li>
+                            <li><i class="fas fa-clock text-success me-2"></i>High Accuracy: ~15-20 minutes</li>
+                            <li><i class="fas fa-clock text-warning me-2"></i>Fast Training: ~2-5 minutes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Expected Accuracy</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-percentage text-primary me-2"></i>Balanced: 75-85%</li>
+                            <li><i class="fas fa-percentage text-success me-2"></i>High Accuracy: 80-90%</li>
+                            <li><i class="fas fa-percentage text-warning me-2"></i>Fast Training: 70-80%</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preset configurations
+const presets = {
+    'balanced': {
+        'id_epochs': 50,
+        'id_batch_size': 32,
+        'id_learning_rate': 0.001
+    },
+    'accurate': {
+        'id_epochs': 100,
+        'id_batch_size': 16,
+        'id_learning_rate': 0.0005
+    },
+    'fast': {
+        'id_epochs': 25,
+        'id_batch_size': 64,
+        'id_learning_rate': 0.002
+    }
+};
+
+// Load preset configuration
+function loadPreset(presetName) {
+    const preset = presets[presetName];
+    Object.keys(preset).forEach(key => {
+        const element = document.getElementById(key);
+        if (element) {
+            element.value = preset[key];
+        }
+    });
+    
+    // Show feedback
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check me-2"></i>Loaded';
+    btn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-warning');
+    btn.classList.add('btn-success');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.classList.remove('btn-success');
+        if (presetName === 'balanced') btn.classList.add('btn-outline-primary');
+        else if (presetName === 'accurate') btn.classList.add('btn-outline-success');
+        else if (presetName === 'fast') btn.classList.add('btn-outline-warning');
+    }, 1000);
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById('quick-training-form').reset();
+    // Load balanced preset as default
+    loadPreset('balanced');
+}
+
+// Form submission
+document.getElementById('quick-training-form').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Starting Training...';
+    submitBtn.disabled = true;
+    
+    // Validate form
+    const epochs = parseInt(document.getElementById('id_epochs').value);
+    const batchSize = parseInt(document.getElementById('id_batch_size').value);
+    const learningRate = parseFloat(document.getElementById('id_learning_rate').value);
+    
+    if (epochs < 1 || epochs > 1000) {
+        e.preventDefault();
+        alert('Epochs must be between 1 and 1000');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    if (batchSize < 1 || batchSize > 512) {
+        e.preventDefault();
+        alert('Batch size must be between 1 and 512');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    if (learningRate <= 0 || learningRate > 1) {
+        e.preventDefault();
+        alert('Learning rate must be between 0 and 1');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+});
+
+// Load balanced preset by default
+window.addEventListener('load', function() {
+    loadPreset('balanced');
+});
+
+// Add some interactive features
+$(document).ready(function() {
+    // Add hover effects to preset buttons
+    $('.btn-outline-primary, .btn-outline-success, .btn-outline-warning').hover(
+        function() {
+            $(this).css('transform', 'scale(1.05)');
+        },
+        function() {
+            $(this).css('transform', 'scale(1)');
+        }
+    );
+    
+    // Add tooltips to preset buttons
+    $('[onclick^="loadPreset"]').each(function() {
+        const presetName = $(this).attr('onclick').match(/loadPreset\('(.+)'\)/)[1];
+        let description = '';
+        
+        switch(presetName) {
+            case 'balanced':
+                description = 'Balanced approach: Good accuracy with reasonable training time';
+                break;
+            case 'accurate':
+                description = 'High accuracy: Longer training time for better results';
+                break;
+            case 'fast':
+                description = 'Fast training: Quick results with slightly lower accuracy';
+                break;
+        }
+        
+        $(this).attr('title', description);
+    });
+});
+</script>
+{% endblock %} 

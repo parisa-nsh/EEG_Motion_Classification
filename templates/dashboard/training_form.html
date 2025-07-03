@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - EEG Classification{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'dashboard:training_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Back to Training
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i>Training Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="training-form">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <!-- Basic Configuration -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-info-circle me-2"></i>Basic Configuration
+                            </h6>
+                            
+                            <div class="mb-3">
+                                {{ form.name|as_crispy_field }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.epochs|as_crispy_field }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.batch_size|as_crispy_field }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.learning_rate|as_crispy_field }}
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Configuration -->
+                        <div class="col-md-6">
+                            <h6 class="mb-3">
+                                <i class="fas fa-sliders-h me-2"></i>Advanced Configuration
+                            </h6>
+                            
+                            <div class="mb-3">
+                                {{ form.kernel_size|as_crispy_field }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.dropout_rate|as_crispy_field }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.filters_input|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Parameter Information -->
+                    <div class="alert alert-info mt-4">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Parameter Guidelines</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small>
+                                    <strong>Epochs:</strong> 20-200 (higher = longer training, better accuracy)<br>
+                                    <strong>Batch Size:</strong> 16-128 (lower = more memory, better generalization)<br>
+                                    <strong>Learning Rate:</strong> 0.0001-0.01 (lower = slower, more stable)
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small>
+                                    <strong>Kernel Size:</strong> 3-7 (odd numbers, larger = more features)<br>
+                                    <strong>Dropout Rate:</strong> 0.1-0.7 (higher = more regularization)<br>
+                                    <strong>Filters:</strong> Increasing sequence (e.g., 32,64,128)
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                            <i class="fas fa-undo me-2"></i>Reset
+                        </button>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="loadDefaults()">
+                                <i class="fas fa-magic me-2"></i>Load Defaults
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="submit-btn">
+                                <i class="fas fa-play me-2"></i>Start Training
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Tips -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-tips me-2"></i>Quick Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-rocket fa-2x text-primary mb-2"></i>
+                            <h6>Quick Start</h6>
+                            <small class="text-muted">Use default parameters for a balanced approach</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                            <h6>High Accuracy</h6>
+                            <small class="text-muted">Increase epochs and use smaller learning rate</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <i class="fas fa-bolt fa-2x text-warning mb-2"></i>
+                            <h6>Fast Training</h6>
+                            <small class="text-muted">Use larger batch size and higher learning rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Default parameters
+const defaultParams = {
+    'id_name': 'Training Session',
+    'id_epochs': 50,
+    'id_batch_size': 32,
+    'id_learning_rate': 0.001,
+    'id_kernel_size': 3,
+    'id_dropout_rate': 0.5,
+    'id_filters_input': '32,64,128'
+};
+
+// Load default parameters
+function loadDefaults() {
+    Object.keys(defaultParams).forEach(key => {
+        const element = document.getElementById(key);
+        if (element) {
+            element.value = defaultParams[key];
+        }
+    });
+}
+
+// Reset form
+function resetForm() {
+    document.getElementById('training-form').reset();
+}
+
+// Form validation
+document.getElementById('training-form').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<span class="loading-spinner me-2"></span>Starting Training...';
+    submitBtn.disabled = true;
+    
+    // Validate filters input
+    const filtersInput = document.getElementById('id_filters_input');
+    const filters = filtersInput.value.split(',').map(f => f.trim());
+    
+    if (filters.length === 0 || filters.some(f => !f || isNaN(f) || parseInt(f) <= 0)) {
+        e.preventDefault();
+        alert('Please enter valid filter sizes (positive integers separated by commas)');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    // Validate learning rate
+    const learningRate = parseFloat(document.getElementById('id_learning_rate').value);
+    if (learningRate <= 0 || learningRate > 1) {
+        e.preventDefault();
+        alert('Learning rate must be between 0 and 1');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    // Validate dropout rate
+    const dropoutRate = parseFloat(document.getElementById('id_dropout_rate').value);
+    if (dropoutRate < 0 || dropoutRate > 1) {
+        e.preventDefault();
+        alert('Dropout rate must be between 0 and 1');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        return;
+    }
+});
+
+// Real-time validation
+document.getElementById('id_filters_input').addEventListener('input', function(e) {
+    const value = e.target.value;
+    const isValid = /^[\d,\s]+$/.test(value) && value.split(',').some(f => f.trim());
+    
+    if (isValid) {
+        e.target.classList.remove('is-invalid');
+        e.target.classList.add('is-valid');
+    } else {
+        e.target.classList.remove('is-valid');
+        e.target.classList.add('is-invalid');
+    }
+});
+
+// Auto-save form data to localStorage
+const formInputs = document.querySelectorAll('#training-form input, #training-form select, #training-form textarea');
+formInputs.forEach(input => {
+    input.addEventListener('change', function() {
+        const formData = {};
+        formInputs.forEach(inp => {
+            formData[inp.name] = inp.value;
+        });
+        localStorage.setItem('trainingFormData', JSON.stringify(formData));
+    });
+});
+
+// Load saved form data
+window.addEventListener('load', function() {
+    const savedData = localStorage.getItem('trainingFormData');
+    if (savedData) {
+        const formData = JSON.parse(savedData);
+        Object.keys(formData).forEach(key => {
+            const element = document.querySelector(`[name="${key}"]`);
+            if (element) {
+                element.value = formData[key];
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block title %}Training Sessions - EEG Classification{% endblock %}
+{% block page_title %}Training Sessions{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{% url 'dashboard:quick_training' %}" class="btn btn-primary">
+        <i class="fas fa-rocket me-2"></i>Quick Training
+    </a>
+    <a href="{% url 'dashboard:training_create' %}" class="btn btn-outline-primary">
+        <i class="fas fa-cogs me-2"></i>Advanced Training
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="running" {% if request.GET.status == 'running' %}selected{% endif %}>Running</option>
+                    <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="failed" {% if request.GET.status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                    <option value="-test_accuracy" {% if request.GET.sort == '-test_accuracy' %}selected{% endif %}>Best Accuracy</option>
+                    <option value="test_accuracy" {% if request.GET.sort == 'test_accuracy' %}selected{% endif %}>Worst Accuracy</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="Session name..." value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-2"></i>Filter
+                </button>
+                <a href="{% url 'dashboard:training_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Training Sessions -->
+{% if sessions %}
+    <div class="row">
+        {% for session in sessions %}
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0">{{ session.name|truncatechars:30 }}</h6>
+                    <span class="status-badge status-{{ session.status }}">
+                        {{ session.status|title }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Created</small><br>
+                            <strong>{{ session.created_at|date:"M d, Y" }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Duration</small><br>
+                            <strong>{{ session.get_duration }}</strong>
+                        </div>
+                    </div>
+                    
+                    {% if session.is_completed %}
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Test Accuracy</small><br>
+                            <strong class="text-success">{{ session.test_accuracy|floatformat:3 }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Test Loss</small><br>
+                            <strong class="text-danger">{{ session.test_loss|floatformat:3 }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <small class="text-muted">Configuration</small><br>
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge bg-light text-dark">{{ session.epochs }} epochs</span>
+                                <span class="badge bg-light text-dark">batch {{ session.batch_size }}</span>
+                                <span class="badge bg-light text-dark">lr {{ session.learning_rate }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if session.is_failed %}
+                    <div class="alert alert-danger py-2 mb-3">
+                        <small><i class="fas fa-exclamation-triangle me-1"></i>{{ session.error_message|truncatechars:50 }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'dashboard:training_detail' session.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </a>
+                        {% if session.is_completed %}
+                        <div class="btn-group">
+                            <a href="{% url 'dashboard:download_model' session.id %}" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-download me-1"></i>Model
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Training sessions pagination">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    <!-- Summary -->
+    <div class="text-center text-muted mt-4">
+        <small>
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} training sessions
+        </small>
+    </div>
+    
+{% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <i class="fas fa-inbox fa-4x text-muted mb-4"></i>
+        <h4 class="text-muted">No Training Sessions Found</h4>
+        <p class="text-muted mb-4">
+            {% if request.GET %}
+                No training sessions match your current filters.
+                <a href="{% url 'dashboard:training_list' %}">Clear filters</a> to see all sessions.
+            {% else %}
+                You haven't created any training sessions yet.
+            {% endif %}
+        </p>
+        <div class="btn-group">
+            <a href="{% url 'dashboard:quick_training' %}" class="btn btn-primary">
+                <i class="fas fa-rocket me-2"></i>Start Quick Training
+            </a>
+            <a href="{% url 'dashboard:training_create' %}" class="btn btn-outline-primary">
+                <i class="fas fa-cogs me-2"></i>Advanced Training
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh for running sessions
+function checkRunningSessions() {
+    const runningCards = document.querySelectorAll('.status-badge.status-running');
+    if (runningCards.length > 0) {
+        // Refresh the page every 10 seconds if there are running sessions
+        setTimeout(() => {
+            location.reload();
+        }, 10000);
+    }
+}
+
+// Initialize auto-refresh
+checkRunningSessions();
+
+// Add interactive features
+$(document).ready(function() {
+    // Add hover effects to cards
+    $('.card').hover(
+        function() {
+            $(this).css('transform', 'translateY(-5px)');
+        },
+        function() {
+            $(this).css('transform', 'translateY(0)');
+        }
+    );
+    
+    // Add click effects to buttons
+    $('.btn').click(function() {
+        $(this).addClass('btn-active');
+        setTimeout(() => {
+            $(this).removeClass('btn-active');
+        }, 200);
+    });
+    
+    // Auto-submit form on select change
+    $('#status, #sort').change(function() {
+        $(this).closest('form').submit();
+    });
+    
+    // Search with debounce
+    let searchTimeout;
+    $('#search').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            $(this).closest('form').submit();
+        }, 500);
+    });
+});
+
+// Add some CSS for button effects
+const style = document.createElement('style');
+style.textContent = `
+    .btn-active {
+        transform: scale(0.95) !important;
+    }
+    
+    .card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %} 
